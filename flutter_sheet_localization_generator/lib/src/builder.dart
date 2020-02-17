@@ -52,8 +52,7 @@ class DartBuilder {
       ..lambda = true
       ..static = true
       ..returns = refer(localizations.normalizedName)
-      ..body = Code(
-          "Localizations.of<${localizations.name}>(context, ${localizations.name})?.labels")
+      ..body = Code("Localizations.of<${localizations.name}>(context, ${localizations.name})?.labels")
       ..requiredParameters.add(Parameter((b) => b
         ..name = "context"
         ..type = refer("BuildContext")))));
@@ -92,12 +91,11 @@ class DartBuilder {
   String _createSectionInstance(String languageCode, Section section) {
     final result = StringBuffer();
 
-    final templatedString =
-        (String value, List<TemplatedValue> templatedValues) {
+    final templatedString = (String value, List<TemplatedValue> templatedValues) {
       if (templatedValues.isNotEmpty) {
-        for (var templatedValue in templatedValues) {
-          value = value.replaceFirst(
-              templatedValue.value, "\$\{${templatedValue.normalizedKey}\}");
+        final uniqueTemplatedValues = templatedValues.toSet().toList();
+        for (var templatedValue in uniqueTemplatedValues) {
+          value = value.replaceFirst(templatedValue.value, "\$\{${templatedValue.normalizedKey}\}");
         }
       }
       return "\"" + _excapeString(value) + "\"";
@@ -112,63 +110,48 @@ class DartBuilder {
 
       if (x.cases.length == 1 && x.cases.first.condition is DefaultCondition) {
         // Single case
-        final translation = x.cases.first.translations.firstWhere(
-            (x) => x.languageCode == languageCode,
+        final translation = x.cases.first.translations.firstWhere((x) => x.languageCode == languageCode,
             orElse: () => Translation(languageCode, "<?" + x.key + "?>"));
 
         if (x.templatedValues.isEmpty) {
           result.write("\"" + _excapeString(translation.value) + "\"");
         } else {
-          final functionArgs =
-              x.templatedValues.map((x) => x.normalizedKey).join(", ");
+          final functionArgs = x.templatedValues.map((x) => x.normalizedKey).join(", ");
 
           // We replace all occurences of `{{original_key}}` by `$originalKey`
-          result.write("(\{$functionArgs\}) => " +
-              templatedString(translation.value, x.templatedValues));
+          result.write("(\{$functionArgs\}) => " + templatedString(translation.value, x.templatedValues));
         }
       } else {
         // Multiple cases
         var functionArgs = "condition";
 
         if (x.templatedValues.isNotEmpty) {
-          functionArgs += ", {" +
-              x.templatedValues.map((x) => x.normalizedKey).join(", ") +
-              "}";
+          functionArgs += ", {" + x.templatedValues.map((x) => x.normalizedKey).join(", ") + "}";
         }
 
         result.write("($functionArgs) {");
 
-        final categoryConditions =
-            x.cases.where((x) => x.condition is CategoryCondition).toList();
+        final categoryConditions = x.cases.where((x) => x.condition is CategoryCondition).toList();
         if (categoryConditions.isNotEmpty) {
           for (var oneCase in categoryConditions) {
             final condition = oneCase.condition as CategoryCondition;
 
-            result.write(
-                "if(condition == ${condition.category.normalizedKey}.${condition.value})");
+            result.write("if(condition == ${condition.category.normalizedKey}.${condition.value})");
 
-            final translation = oneCase.translations.firstWhere(
-                (x) => x.languageCode == languageCode,
+            final translation = oneCase.translations.firstWhere((x) => x.languageCode == languageCode,
                 orElse: () => Translation(languageCode, "<?" + x.key + "?>"));
 
-            result.write("return " +
-                templatedString(translation.value, x.templatedValues) +
-                ";");
+            result.write("return " + templatedString(translation.value, x.templatedValues) + ";");
           }
         }
 
-        final defaultCase = x.cases.firstWhere(
-            (x) => x.condition is DefaultCondition,
-            orElse: () => null);
+        final defaultCase = x.cases.firstWhere((x) => x.condition is DefaultCondition, orElse: () => null);
 
         if (defaultCase != null) {
-          final translation = defaultCase.translations.firstWhere(
-              (x) => x.languageCode == languageCode,
+          final translation = defaultCase.translations.firstWhere((x) => x.languageCode == languageCode,
               orElse: () => Translation(languageCode, "<?" + x.key + "?>"));
 
-          result.write("return " +
-              templatedString(translation.value, x.templatedValues) +
-              ";");
+          result.write("return " + templatedString(translation.value, x.templatedValues) + ";");
         } else {
           result.write("throw Exception();");
         }
@@ -226,18 +209,14 @@ class DartBuilder {
     };
 
     section.labels.forEach((label) {
-      if (label.templatedValues.isEmpty &&
-          label.cases.length == 1 &&
-          label.cases.first.condition is DefaultCondition) {
+      if (label.templatedValues.isEmpty && label.cases.length == 1 && label.cases.first.condition is DefaultCondition) {
         addField("String", label.normalizedKey);
       } else {
         // If we have templated values, a function is generated
-        final functionTypeName =
-            section.normalizedName + "_" + label.normalizedKey;
+        final functionTypeName = section.normalizedName + "_" + label.normalizedKey;
         var functionArguments = "";
 
-        final categories =
-            label.cases.where((x) => x.condition is CategoryCondition);
+        final categories = label.cases.where((x) => x.condition is CategoryCondition);
         Category category;
         if (categories.isNotEmpty) {
           category = (categories.first.condition as CategoryCondition).category;
@@ -246,11 +225,8 @@ class DartBuilder {
 
         if (label.templatedValues.isNotEmpty) {
           if (functionArguments.isNotEmpty) functionArguments += ",";
-          functionArguments += "{" +
-              label.templatedValues
-                  .map((x) => "@required String ${x.normalizedKey}")
-                  .join(", ") +
-              "}";
+          functionArguments +=
+              "{" + label.templatedValues.map((x) => "@required String ${x.normalizedKey}").join(", ") + "}";
         }
 
         _library.body.add(
@@ -259,9 +235,7 @@ class DartBuilder {
         addField(functionTypeName, "_" + label.normalizedKey);
 
         final templatedCallArgs = label.templatedValues.isNotEmpty
-            ? label.templatedValues
-                .map((x) => "${x.normalizedKey}: ${x.normalizedKey},")
-                .join()
+            ? label.templatedValues.map((x) => "${x.normalizedKey}: ${x.normalizedKey},").join()
             : "";
         final conditionCallArgs = categories.isNotEmpty ? "condition, " : "";
 
