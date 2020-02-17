@@ -289,5 +289,5 @@ class DartBuilder {
   }
 
   List<TemplatedValue> _getUniqueTemplatedValues(List<TemplatedValue> source) =>
-      !source.isNotEmpty ? source.toSet().toList() : source;
+      source.isNotEmpty ? source.toSet().toList() : source;
 }
