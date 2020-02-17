@@ -94,7 +94,6 @@ class DartBuilder {
 
     final templatedString = (String value, List<TemplatedValue> templatedValues) {
       if (templatedValues.isNotEmpty) {
-        final uniqueTemplatedValues = _getUniqueTemplatedValues(templatedValues);
         for (var templatedValue in uniqueTemplatedValues) {
           value = value.replaceFirst(templatedValue.value, "\$\{${templatedValue.normalizedKey}\}");
         }
@@ -109,25 +108,27 @@ class DartBuilder {
       result.write(x.normalizedKey);
       result.write(":");
 
+      final uniqueTemplatedValues = _getUniqueTemplatedValues(x.templatedValues);
+
       if (x.cases.length == 1 && x.cases.first.condition is DefaultCondition) {
         // Single case
         final translation = x.cases.first.translations.firstWhere((x) => x.languageCode == languageCode,
             orElse: () => Translation(languageCode, "<?" + x.key + "?>"));
 
-        if (x.templatedValues.isEmpty) {
+        if (uniqueTemplatedValues.isEmpty) {
           result.write("\"" + _excapeString(translation.value) + "\"");
         } else {
-          final functionArgs = x.templatedValues.map((x) => x.normalizedKey).join(", ");
+          final functionArgs = uniqueTemplatedValues.map((x) => x.normalizedKey).join(", ");
 
           // We replace all occurences of `{{original_key}}` by `$originalKey`
-          result.write("(\{$functionArgs\}) => " + templatedString(translation.value, x.templatedValues));
+          result.write("(\{$functionArgs\}) => " + templatedString(translation.value, uniqueTemplatedValues));
         }
       } else {
         // Multiple cases
         var functionArgs = "condition";
 
-        if (x.templatedValues.isNotEmpty) {
-          functionArgs += ", {" + x.templatedValues.map((x) => x.normalizedKey).join(", ") + "}";
+        if (uniqueTemplatedValues.isNotEmpty) {
+          functionArgs += ", {" + uniqueTemplatedValues.map((x) => x.normalizedKey).join(", ") + "}";
         }
 
         result.write("($functionArgs) {");
@@ -142,7 +143,7 @@ class DartBuilder {
             final translation = oneCase.translations.firstWhere((x) => x.languageCode == languageCode,
                 orElse: () => Translation(languageCode, "<?" + x.key + "?>"));
 
-            result.write("return " + templatedString(translation.value, x.templatedValues) + ";");
+            result.write("return " + templatedString(translation.value, uniqueTemplatedValues) + ";");
           }
         }
 
@@ -152,7 +153,7 @@ class DartBuilder {
           final translation = defaultCase.translations.firstWhere((x) => x.languageCode == languageCode,
               orElse: () => Translation(languageCode, "<?" + x.key + "?>"));
 
-          result.write("return " + templatedString(translation.value, x.templatedValues) + ";");
+          result.write("return " + templatedString(translation.value, uniqueTemplatedValues) + ";");
         } else {
           result.write("throw Exception();");
         }
