@@ -94,8 +94,8 @@ class DartBuilder {
 
     final templatedString = (String value, List<TemplatedValue> templatedValues) {
       if (templatedValues.isNotEmpty) {
-        for (var templatedValue in uniqueTemplatedValues) {
-          value = value.replaceFirst(templatedValue.value, "\$\{${templatedValue.normalizedKey}\}");
+        for (var templatedValue in templatedValues) {
+          value = value.replaceAll(templatedValue.value, "\$\{${templatedValue.normalizedKey}\}");
         }
       }
       return "\"" + _excapeString(value) + "\"";
