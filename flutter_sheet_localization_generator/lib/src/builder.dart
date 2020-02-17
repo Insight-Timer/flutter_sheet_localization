@@ -2,6 +2,7 @@ import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
 
 import 'localizations.dart';
+import 'localizations.dart';
 
 class DartBuilder {
   LibraryBuilder _library;
@@ -93,7 +94,7 @@ class DartBuilder {
 
     final templatedString = (String value, List<TemplatedValue> templatedValues) {
       if (templatedValues.isNotEmpty) {
-        final uniqueTemplatedValues = templatedValues.toSet().toList();
+        final uniqueTemplatedValues = _getUniqueTemplatedValues(templatedValues);
         for (var templatedValue in uniqueTemplatedValues) {
           value = value.replaceFirst(templatedValue.value, "\$\{${templatedValue.normalizedKey}\}");
         }
@@ -209,7 +210,8 @@ class DartBuilder {
     };
 
     section.labels.forEach((label) {
-      if (label.templatedValues.isEmpty && label.cases.length == 1 && label.cases.first.condition is DefaultCondition) {
+      final uniqueTemplatedValues = _getUniqueTemplatedValues(uniqueTemplatedValues);
+      if (uniqueTemplatedValues.isEmpty && label.cases.length == 1 && label.cases.first.condition is DefaultCondition) {
         addField("String", label.normalizedKey);
       } else {
         // If we have templated values, a function is generated
@@ -223,10 +225,10 @@ class DartBuilder {
           functionArguments += "${category.normalizedKey} condition";
         }
 
-        if (label.templatedValues.isNotEmpty) {
+        if (uniqueTemplatedValues.isNotEmpty) {
           if (functionArguments.isNotEmpty) functionArguments += ",";
           functionArguments +=
-              "{" + label.templatedValues.map((x) => "@required String ${x.normalizedKey}").join(", ") + "}";
+              "{" + uniqueTemplatedValues.map((x) => "@required String ${x.normalizedKey}").join(", ") + "}";
         }
 
         _library.body.add(
@@ -234,8 +236,8 @@ class DartBuilder {
         );
         addField(functionTypeName, "_" + label.normalizedKey);
 
-        final templatedCallArgs = label.templatedValues.isNotEmpty
-            ? label.templatedValues.map((x) => "${x.normalizedKey}: ${x.normalizedKey},").join()
+        final templatedCallArgs = uniqueTemplatedValues.isNotEmpty
+            ? uniqueTemplatedValues.map((x) => "${x.normalizedKey}: ${x.normalizedKey},").join()
             : "";
         final conditionCallArgs = categories.isNotEmpty ? "condition, " : "";
 
@@ -259,7 +261,7 @@ class DartBuilder {
                     ]
                   : [])
               ..optionalParameters.addAll(
-                label.templatedValues.map(
+                uniqueTemplatedValues.map(
                   (x) => Parameter(
                     (b) => b
                       ..name = x.normalizedKey
@@ -285,4 +287,7 @@ class DartBuilder {
 
     _library.body.add(result.build());
   }
+
+  List<TemplatedValue> _getUniqueTemplatedValues(List<TemplatedValue> source) =>
+      !source.isNotEmpty ? source.toSet().toList() : source;
 }
