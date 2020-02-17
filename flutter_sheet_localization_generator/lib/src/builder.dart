@@ -119,7 +119,6 @@ class DartBuilder {
           result.write("\"" + _excapeString(translation.value) + "\"");
         } else {
           final functionArgs = uniqueTemplatedValues.map((x) => x.normalizedKey).join(", ");
-          uniqueTemplatedValues.forEach((template) => result.write("dope ${template.value}"));
           // We replace all occurences of `{{original_key}}` by `$originalKey`
           result.write("(\{$functionArgs\}) => " + templatedString(translation.value, uniqueTemplatedValues));
         }
