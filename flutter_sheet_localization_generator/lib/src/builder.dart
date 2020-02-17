@@ -210,7 +210,7 @@ class DartBuilder {
     };
 
     section.labels.forEach((label) {
-      final uniqueTemplatedValues = _getUniqueTemplatedValues(uniqueTemplatedValues);
+      final uniqueTemplatedValues = _getUniqueTemplatedValues(label.templatedValues);
       if (uniqueTemplatedValues.isEmpty && label.cases.length == 1 && label.cases.first.condition is DefaultCondition) {
         addField("String", label.normalizedKey);
       } else {
