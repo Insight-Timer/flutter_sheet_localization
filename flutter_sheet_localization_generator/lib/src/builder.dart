@@ -168,7 +168,7 @@ class DartBuilder {
               );
             }
           } else {
-            value = value.replaceFirst(templatedValue.value, '\$\{${templatedValue.normalizedKey}\}');
+            value = value.replaceAll(templatedValue.value, '\$\{${templatedValue.normalizedKey}\}');
           }
         }
       }
@@ -190,7 +190,7 @@ class DartBuilder {
             orElse: () => Translation(languageCode, '<?' + x.key + '?>'));
 
         if (uniqueTemplatedValues.isEmpty) {
-          result.write("\"" + _excapeString(translation.value) + "\"");
+          result.write('\'' + _excapeString(translation.value) + '\'');
         } else {
           final functionArgs = uniqueTemplatedValues.map((x) => x.normalizedKey).join(", ");
           // We replace all occurences of `{{original_key}}` by `$originalKey`
@@ -216,7 +216,7 @@ class DartBuilder {
                 orElse: () => Translation(languageCode, '<?' + x.key + '?>'));
 
             result.write(
-              'return ' + templatedString(translation.value, x.templatedValues, condition.value) + ';',
+              'return ' + templatedString(translation.value, uniqueTemplatedValues, condition.value) + ';',
             );
           }
         }
