@@ -124,52 +124,7 @@ class DartBuilder {
     final templatedString = (String value, List<TemplatedValue> templatedValues, [String condition]) {
       if (templatedValues.isNotEmpty) {
         for (var templatedValue in templatedValues) {
-          if (templatedValue.type == 'DateTime') {
-            if (templatedValue.formatting != null) {
-              value = value.replaceFirst(
-                templatedValue.value,
-                "\$\{DateFormat('${templatedValue.formatting}', '$languageCode').format(${templatedValue.normalizedKey})\}",
-              );
-            } else {
-              value = value.replaceFirst(
-                templatedValue.value,
-                '\$\{${templatedValue.normalizedKey}.toIso8601String()\}',
-              );
-            }
-          } else if (const [
-            'double',
-            'int',
-            'num',
-          ].contains(templatedValue.type)) {
-            if (templatedValue.formatting != null) {
-              if ([
-                'decimalPercentPattern',
-                'currency',
-                'simpleCurrency',
-                'compact',
-                'compactLong',
-                'compactSimpleCurrency',
-                'compactCurrency'
-              ].contains(templatedValue.formatting)) {
-                value = value.replaceFirst(templatedValue.value,
-                    "\$\{NumberFormat.${templatedValue.formatting}(locale: '$languageCode').format(${templatedValue.normalizedKey})\}");
-              } else if (['decimalPattern', 'percentPattern', 'scientificPattern']
-                  .contains(templatedValue.formatting)) {
-                value = value.replaceFirst(templatedValue.value,
-                    "\$\{NumberFormat.${templatedValue.formatting}('$languageCode').format(${templatedValue.normalizedKey})\}");
-              } else if (templatedValue.formatting == 'format') {
-                value = value.replaceFirst(templatedValue.value,
-                    "\$\{NumberFormat.${templatedValue.formatting}('$languageCode').format(${templatedValue.normalizedKey})\}");
-              }
-            } else {
-              value = value.replaceFirst(
-                templatedValue.value,
-                "\$\{NumberFormat(null, '$languageCode').format(${templatedValue.normalizedKey})\}",
-              );
-            }
-          } else {
-            value = value.replaceAll(templatedValue.value, '\$\{${templatedValue.normalizedKey}\}');
-          }
+          value = value.replaceAll(templatedValue.value, '\$\{${templatedValue.normalizedKey}\}');
         }
       }
       return '\"' + _excapeString(value) + '\"';
