@@ -124,7 +124,52 @@ class DartBuilder {
     final templatedString = (String value, List<TemplatedValue> templatedValues, [String condition]) {
       if (templatedValues.isNotEmpty) {
         for (var templatedValue in templatedValues) {
-          value = value.replaceAll(templatedValue.value, '\$\{${templatedValue.normalizedKey}\}');
+          if (templatedValue.type == 'DateTime') {
+            if (templatedValue.formatting != null) {
+              value = value.replaceAll(
+                templatedValue.value,
+                "\$\{DateFormat('${templatedValue.formatting}', '$languageCode').format(${templatedValue.normalizedKey})\}",
+              );
+            } else {
+              value = value.replaceFirst(
+                templatedValue.value,
+                '\$\{${templatedValue.normalizedKey}.toIso8601String()\}',
+              );
+            }
+          } else if (const [
+            'double',
+            'int',
+            'num',
+          ].contains(templatedValue.type)) {
+            if (templatedValue.formatting != null) {
+              if ([
+                'decimalPercentPattern',
+                'currency',
+                'simpleCurrency',
+                'compact',
+                'compactLong',
+                'compactSimpleCurrency',
+                'compactCurrency'
+              ].contains(templatedValue.formatting)) {
+                value = value.replaceAll(templatedValue.value,
+                    "\$\{NumberFormat.${templatedValue.formatting}(locale: '$languageCode').format(${templatedValue.normalizedKey})\}");
+              } else if (['decimalPattern', 'percentPattern', 'scientificPattern']
+                  .contains(templatedValue.formatting)) {
+                value = value.replaceAll(templatedValue.value,
+                    "\$\{NumberFormat.${templatedValue.formatting}('$languageCode').format(${templatedValue.normalizedKey})\}");
+              } else if (templatedValue.formatting == 'format') {
+                value = value.replaceAll(templatedValue.value,
+                    "\$\{NumberFormat.${templatedValue.formatting}('$languageCode').format(${templatedValue.normalizedKey})\}");
+              }
+            } else {
+              value = value.replaceAll(
+                templatedValue.value,
+                "\$\{NumberFormat(null, '$languageCode').format(${templatedValue.normalizedKey})\}",
+              );
+            }
+          } else {
+            value = value.replaceAll(templatedValue.value, '\$\{${templatedValue.normalizedKey}\}');
+          }
         }
       }
       return '\"' + _excapeString(value) + '\"';
@@ -145,7 +190,7 @@ class DartBuilder {
             orElse: () => Translation(languageCode, '<?' + x.key + '?>'));
 
         if (uniqueTemplatedValues.isEmpty) {
-          result.write('\'' + _excapeString(translation.value) + '\'');
+          result.write("\"" + _excapeString(translation.value) + "\"");
         } else {
           final functionArgs = uniqueTemplatedValues.map((x) => x.normalizedKey).join(", ");
           // We replace all occurences of `{{original_key}}` by `$originalKey`
@@ -171,7 +216,7 @@ class DartBuilder {
                 orElse: () => Translation(languageCode, '<?' + x.key + '?>'));
 
             result.write(
-              'return ' + templatedString(translation.value, uniqueTemplatedValues, condition.value) + ';',
+              'return ' + templatedString(translation.value, x.templatedValues, condition.value) + ';',
             );
           }
         }
